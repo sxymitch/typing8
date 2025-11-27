@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Typing Game</title>
+<style>
+body { background: black; margin: 0; overflow: hidden; }
+canvas { display: block; margin: auto; background: #111; }
+label { color: white; font-size: 18px; display: block; text-align: center; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<label>Speed:
+<select id="speedSelect">
+  <option value="0.3">Super Slow</option>
+  <option value="0.6">Slow</option>
+  <option value="1" selected>Medium</option>
+  <option value="1.5">Fast</option>
+</select>
+</label>
+
+<canvas id="gameCanvas" width="900" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const LETTERS = "asdfjkl;umrv yh ntgb".replace(/ /g, "").split("");
+let groups = [];
+let fallSpeed = 1.2;
+let speedMultiplier = parseFloat(document.getElementById("speedSelect").value);
+let mistakes = 0;
+let score = 0;
+
+function randomGroup() {
+    let arr = [];
+    for (let i = 0; i < 4; i++) arr.push(LETTERS[Math.floor(Math.random() * LETTERS.length)]);
+    return arr.join("");
+}
+
+function spawnGroup() {
+    // Ensure all groups start at the top (y = -50)
+    groups.push({ text: randomGroup(), typed: "", x: Math.random() * (canvas.width - 200) + 20, y: -50 });
+}
+
+setInterval(spawnGroup, 2000);
+
+document.getElementById("speedSelect").addEventListener("change", (e) => {
+    speedMultiplier = parseFloat(e.target.value);
+});
+
+document.addEventListener("keydown", (e) => {
+    const key = e.key.toLowerCase();
+    if (!LETTERS.includes(key)) { mistakes++; return; }
+
+    let target = null;
+    for (let g of groups) {
+        if (g.text[g.typed.length] === key) { target = g; break; }
+    }
+
+    if (!target) { mistakes++; return; }
+
+    target.typed += key;
+    if (target.typed.length === target.text.length) {
+        score++;
+        groups = groups.filter(g => g !== target);
+    }
+});
+
+function drawGroup(g) {
+    let boxSize = 55;
+    let padding = 5;
+    for (let i = 0; i < g.text.length; i++) {
+        let letter = g.text[i];
+        let boxX = g.x + i * (boxSize + padding);
+        let boxY = g.y;
+        ctx.fillStyle = (i < g.typed.length) ? "#00aa00" : "#333";
+        ctx.fillRect(boxX, boxY, boxSize, boxSize);
+        ctx.fillStyle = "white";
+        ctx.font = "32px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(letter, boxX + boxSize / 2, boxY + boxSize / 2);
+    }
+}
+
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let g of groups) {
+        g.y += fallSpeed * speedMultiplier;
+        drawGroup(g);
+        if (g.y > canvas.height - 60) {
+            mistakes++;
+            groups = groups.filter(x => x !== g);
+        }
+    }
+
+    ctx.fillStyle = "white";
+    ctx.font = "24px monospace";
+    ctx.fillText("Score: " + score, 20, 30);
+    ctx.fillText("Mistakes: " + mistakes, 20, 60);
+
+    requestAnimationFrame(gameLoop);
+}
+gameLoop();
+</script>
+
+</body>
+</html>
